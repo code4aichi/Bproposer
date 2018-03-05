@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>食べ物新規登録ページ</title>
+
+    <!-- Bootstrap CSS -->
+
+  </head>
+  <body>
+    <h1>食べ物新規登録ページ</h1>
+    <label for="regionname">産地入力</label>
+    <label for="foodname">食べ物新規登録</label>
+    <input type="text" name="regionname" id="regionname">
+    <input type="text" name="foodname" id="foodname">
+    <button type="button" id="food_add">新規登録</button>
+
+    <h2>登録品目一覧</h2>
+    <ul id="foods"></ul>
+ 
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="js/jquery.min.js"></script>
+    <script>
+
+//以降、食材情報取得/表示用APIハンドラ
+
+      $(function(){
+
+	//食材情報取得(GET).ラベル'foods'に対しテキストとして順次付加代入
+        var $ul = $('#foods');
+        $.ajax({
+          type: 'GET',
+          url: 'http://10.36.253.173:8080/api/foods',
+          dataType: 'json',
+          success: function(json){
+            console.log('connect');
+	    //以下の'foods'JSONは全ての食材情報を含む.ここから各種情報を抽出
+            $.each(json['foods'], function(index, val){
+              var id = val['id'];
+              var regionname = val['regionname'];
+              var foodname = val['foodname'];
+	      //foodsラベル部位には、最終的に「地域名称＋食材名称」が表示される
+              $ul.append('<li>'+regionname+ ' ' +foodname+'</li>');
+            });
+          }
+        });
+
+	//食材更新リクエスト(POST)を送るボタン'food_add'の動作を定義
+        $('#food_add').click(function(e){
+	  //2つの入力領域#regionnameおよび#foodnameの入力値を代入してJSONを投げる
+          var regionname = $('#regionname').val();
+          var foodname = $('#foodname').val();
+          $.ajax({
+            type: 'POST',
+            url: 'http://10.36.253.173:8080/api/new',
+            data: {
+              'regionname' : regionname,
+              'foodname' : foodname
+            },
+            dataType: 'json',
+	    //成功したらリロードするのかな？
+            success: function(json){
+              location.reload();
+            }
+          });
+        });
+      });
+    </script>
+  </body>
+</html>
