@@ -1,0 +1,128 @@
+BProposer v 0.0.2
+
+
+#ABOUT
+
+RESASハッカソンin愛知2017におけるTEAM-Bの成果物です。
+Webアプリとして愛知県内の食材の「ミスマッチ」を提示します。
+
+
+#REQUIREMENT
+
+##サーバー側
+・Apache等ウェブサーバー
+・python3
+・pythonパッケージとしてbottle, PyMySQL, simplejson, configparser
+・Mariadb 5.5.5
+
+##動作環境例(コンテナ上で検証)
+CentOS 7 daily built LXD container by Canonical (2017/11/18日時点最新のもの)
+httpd(Apache)   2.4.6
+MariaDB 5.5.56
+python  3.4.5
+bottle  0.12.13
+configparser    3.5.0
+pip     9.0.1
+PyMySQL 0.7.11
+setuptools      19.2
+simplejson      3.12.0
+
+
+#CONTENTS
+
+##html/index.html
+フロントページ。
+
+##html/gencombination.html
+ミスマッチング表示ページ・
+
+##html/input_page.html
+新規品目登録/品目一覧表示ページ
+
+##html/style.css
+(現時点で)フロント用スタイルシート
+
+##html/js
+いまのところjqueryのローカルコピーのみ入ってます
+
+##html/img
+各種画像
+
+##scripts/main.py
+クライアント側の要求に応じてDB操作/参照を行なうためのサーバーサイド処理。
+APIエンドポイントとして8080番ポートで待ち受け。
+
+##scripts/gendbsets.sh
+BProposerのバックエンドDBのユーザー/DB/テーブル初期化スクリプト。
+新規の開発環境を用意する際には必ず実行。DB名、ユーザー名その他を適宜変更して使う。
+(main.pyおよびinput2sql.*のDBアクセス設定の書き換え処理を含む)
+
+##scripts/input2sql.sh
+2*Xの「地域名」「食材名」のカンマorタブ区切りCSVファイルをMariaDBにインポートするbashスクリプト。mariadb稼働後にインポート対象ファイルを引数として実行。
+
+#初期設定・起動
+
+```
+#!/bin/sh
+
+unzip BProposer.zip
+cd BProposer
+
+#Webや仮想マシンなど実行インスタンスがクライアントと異なる場合には、各htmlファイル内の'localhost'をFQDNもしくはIPアドレスで置換する。
+
+export IP=192.168.13.2
+sed -i -e "s/localhost/$IP" html/*.html
+
+#MariDB起動、DBユーザー, DB, テーブルを作成
+systemctl start mariadb
+sudo source scripts/gendbsets.sh
+
+#データ整形・テーブルへの挿入
+./scripts/input2sql.sh data/tokusan_array.csv
+
+
+#各html/JSをドキュメントルート直下に配置 (VirtualHost尚可)
+
+cp html/* /var/www/html
+
+#Apache起動
+systemctl start httpd
+
+#FW・経路設定その他あればやる
+###
+
+#main.py実行
+python3 scripts/main.py
+```
+
+
+#TODO
+#
+ [長期的なもの]
+ * 外部APIの利用を絡めた提案機能
+ * UI
+ * ミスマッチ度表示機能？
+ * その他もろもろ
+ * セキュリティ(DB, 入力値検証, サンドボックス他)
+
+ [短期的なもの]
+ * 新規データ入力時の値検証(特に意味のない文字(ブランク,制御文字等に対するエラー表示)
+ * 既存DB/テーブル(ホスティングその他)を用いる際のソースコード再構成スクリプト
+ * 入力値として「説明」「画像」項目の検討
+ * データ入力後の承認プロセス (既存の実装例を参考に)
+
+
+#CHANGELOG
+
+11/19/17 v 0.0.1 modified
+ * input_page.html のDB要素未表示問題を解消。新規品目も追加できるよう修正しました。
+
+11/22/17 v 0.0.2
+ * 食材の産地表記に対応しました。関連する変更点としては次の通り。
+ * デフォルトのDBとして「id」「地域名」「食材名]をセットとする 3*X 個のDB形式を採用しました。
+ * DB 'aichifoods' に対して全権限を有するユーザー 'kenken9' を生成し、DB管理ユーザーとしてパスワードを指定する処理を追加しました。このIDは初期化時にgendbsets.shでグローバルに指定可能です。
+ * 新規食材入力ページ、組み合わせ表示ページにおけるJSON入出力の形式が上記DB変更に対応しました。
+ * main.pyでのDB関連処理を新規DBに対応させ、クライアントからの「地域名&食材名」入力に対応しました。
+ * 新規DBへのCSVインポート処理 input2sql.sh を追加しました。
+
+
